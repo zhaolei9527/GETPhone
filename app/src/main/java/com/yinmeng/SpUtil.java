@@ -1,19 +1,12 @@
-package com.getphone;
+package com.yinmeng;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Map;
 
-/**
- * com.getphone
- *
- * @author 赵磊
- * @date 2018/4/16
- * 功能描述：
- */
+
 public class SpUtil {
 
     private static String getSpName(Context context) {
